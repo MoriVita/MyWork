@@ -1,7 +1,7 @@
 month = {
-    "november" : 30,
-    "december" : 31,
-    "January" : 31
+    "ноябрь" : 30,
+    "декабрь" : 31,
+    "январь" : 31
 }
 
 category = {

@@ -4,9 +4,11 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram import Router, F
 
+from data import month
 from state import Reg
 
 user_router = Router()
+
 
 
 async def kb_next():
@@ -16,21 +18,52 @@ async def kb_next():
     )
     return nb.adjust(2).as_markup()
 
-# async def kb_month():
-#     kb = InlineKeyboardBuilder()
-#     kb.button(
-#         text='input month', callback_data= "month"
-#     )
+
+
+async def kb_month():
+    kb = InlineKeyboardBuilder()
+    for month_name, month_number in month.items():
+        kb.button(
+            text=month_name,
+            callback_data=f"month_{month_number}"
+        )
+    return kb.adjust(2).as_markup()
+
+
+
+    # kb.button(
+    #     text='input month', callback_data= "month"
+    # )
 
 ####################################################################################################################################
 
 
+
+
 @user_router.callback_query(F.data == 'next')
-async def cb_next(callback: CallbackQuery):
-    await callback.message.answer('n_text')
+async def cb_next(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(Reg.month)  # устанавливаем состояние
+    await callback.message.answer(
+        'выберите текущий месяц из списка',
+        reply_markup=await kb_month()
+    )
 
 
 
+# @user_router.message(Command('month'))
+# async def cmd_month(message: Message, state: FSMContext):
+#     await state.set_state(Reg.month)
+#     await message.answer('month', reply_markup= await kb_month())
+
+
+@user_router.callback_query(Reg.month)
+async def cb_month(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(month=callback.data)
+    data = await state.get_data()
+    print(data)
+    # можно отправить подтверждение
+    await callback.message.answer(f"Вы выбрали: {data}")
+    await callback.answer()  # закрываем "часики" на кнопке
 
 ##################################################################
 
