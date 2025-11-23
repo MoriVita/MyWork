@@ -30,12 +30,27 @@ async def kb_month():
     return kb.adjust(2).as_markup()
 
 
+async def kb_optional():
+    rb = InlineKeyboardBuilder()
+    rb.button(
+        text = 'новая кнопка', callback_data = 'next'
+    )
+    return rb.adjust(2).as_markup()
 
-    # kb.button(
-    #     text='input month', callback_data= "month"
-    # )
 
 ####################################################################################################################################
+@user_router.callback_query(F.data.startswith("month_"))
+async def handle_month(callback: CallbackQuery, state: FSMContext):
+        value = callback.data.split("_")[1]
+
+        await state.update_data(month=callback.data)
+        data = await state.get_data()
+
+        text = "\n".join(f"{k}: {v}" for k,v in month.items())
+
+        if value == str(month["ноябрь"]):
+            await callback.message.answer(text, reply_markup = await kb_optional())
+
 
 
 
@@ -50,20 +65,20 @@ async def cb_next(callback: CallbackQuery, state: FSMContext):
 
 
 
-# @user_router.message(Command('month'))
-# async def cmd_month(message: Message, state: FSMContext):
-#     await state.set_state(Reg.month)
-#     await message.answer('month', reply_markup= await kb_month())
+# @user_router.callback_query(Reg.month)
+# async def cb_month(callback: CallbackQuery, state: FSMContext):
+#     await state.update_data(month=callback.data)
+#     data = await state.get_data()
+#     print(data)
+#     # можно отправить подтверждение
+#     await callback.message.answer(f"Вы выбрали: {data}")
+#     await callback.answer()  # закрываем "часики" на кнопке
 
 
-@user_router.callback_query(Reg.month)
-async def cb_month(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(month=callback.data)
-    data = await state.get_data()
-    print(data)
-    # можно отправить подтверждение
-    await callback.message.answer(f"Вы выбрали: {data}")
-    await callback.answer()  # закрываем "часики" на кнопке
+
+
+
+
 
 ##################################################################
 
