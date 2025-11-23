@@ -4,7 +4,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram import Router, F
 
-from data import month, category
+from data import month, category, data_us
 from state import Reg
 
 user_router = Router()
@@ -29,6 +29,29 @@ async def kb_month():
         )
     return kb.adjust(2).as_markup()
 
+
+
+async def kb_data_us():
+    kb_us = InlineKeyboardBuilder()
+    for data_u in data_us:
+        kb_us.button(
+            text = data_u,
+            callback_data=f"data_{data_u}"
+        )
+    return kb_us.adjust(2).as_markup()
+
+
+async def kb_mn():
+    kb_mns = InlineKeyboardBuilder()
+    kb_mns.button(
+        text="продолжить",
+        callback_data = "menu"
+    )
+    return kb_mns.as_markup()
+
+
+
+
 @user_router.callback_query(F.data == str(month["ноябрь"]))
 async def kb_optional(callback: CallbackQuery, state: FSMContext):
     await state.set_state(Reg.day)
@@ -36,6 +59,9 @@ async def kb_optional(callback: CallbackQuery, state: FSMContext):
 
     await callback.answer()
 
+
+
+####доделать сравнение
 @user_router.message(Reg.day)
 async def handle_day(message: Message, state: FSMContext):
 
@@ -46,14 +72,14 @@ async def handle_day(message: Message, state: FSMContext):
         await message.answer("много")
     print(data)
     month_name = data.get("month_name")
-    await message.answer(f"Текущий месяц: {month_name},\n день: {message.text}")
+
+    await message.answer(
+        f"Текущий месяц: {month_name},\n день: {message.text}",
+        reply_markup = await kb_mn()
+    )
     await state.clear()  # можно очистить состояние
 
-    # rb = InlineKeyboardBuilder()
-    # rb.button(
-    #     text = 'новая кнопка', callback_data = 'next'
-    # )
-    # return rb.adjust(2).as_markup()
+
 
 
 ####################################################################################################################################
@@ -89,14 +115,14 @@ async def cb_next(callback: CallbackQuery, state: FSMContext):
 
 
 
-# @user_router.callback_query(Reg.month)
-# async def cb_month(callback: CallbackQuery, state: FSMContext):
-#     await state.update_data(month=callback.data)
-#     data = await state.get_data()
-#     print(data)
-#     # можно отправить подтверждение
-#     await callback.message.answer(f"Вы выбрали: {data}")
-#     await callback.answer()  # закрываем "часики" на кнопке
+@user_router.callback_query(F.data == 'menu')
+async def cb_menu(callback: CallbackQuery):
+    await callback.message.edit_text(
+        'выберите действие',
+        reply_markup=await kb_data_us()
+    )
+
+
 
 
 
