@@ -4,7 +4,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram import Router, F
 
-from data import month, data_us, user_data
+from data import month, data_us, users_data
 from state import Reg
 
 user_router = Router()
@@ -28,6 +28,40 @@ async def kb_month():
             callback_data=f"month_{month_number}"
         )
     return kb.adjust(4).as_markup()
+
+
+
+
+async def add_expenses(message: Message, state: FSMContext):
+    user_id = message.from_user.id
+
+    if user_id not in users_data:
+        users_data[user_id] = {
+            "categories": {},
+            "expenses": []
+        }
+
+    await state.set_state(Reg.category)
+    await message.answer(
+        "Выберите категорию или введите новую",
+        reply_markup=await kb_categories(user_id)
+    )
+
+
+
+async def kb_categories(user_id):
+    kb = InlineKeyboardBuilder()
+    categories = users_data[user_id]["categories"]
+
+    for cat in categories.keys():
+        kb.button(
+            text=cat, callback_data=f"cat_{cat}"
+        )
+    kb.button(
+        text="Добавить", callback_data="cat_new"
+    )
+    return kb.adjust(2).as_markup()
+
 
 
 
@@ -113,10 +147,12 @@ async def handle_month(callback: CallbackQuery, state: FSMContext):
 
 
 @user_router.callback_query(F.data.startswith("data_"))
-async def handle_data_us(callback: CallbackQuery, state: FSMContext):
+async def handle_data_us( callback: CallbackQuery, state: FSMContext):
     action = callback.data.replace("data_", "")
+
+
     if action == "внести расходы":
-        await kb_mn()
+        await add_expenses(callback.message, state)
 
 
 
