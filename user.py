@@ -4,7 +4,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram import Router, F
 
-from data import month, category, data_us
+from data import month, data_us, user_data
 from state import Reg
 
 user_router = Router()
@@ -16,18 +16,18 @@ async def kb_next():
     nb.button(
         text='начать', callback_data= "next"
     )
-    return nb.adjust(2).as_markup()
+    return nb.as_markup()
 
 
 
 async def kb_month():
     kb = InlineKeyboardBuilder()
-    for month_name, month_number in month.items():
+    for month_number, (name, days) in month.items():
         kb.button(
-            text=month_name,
+            text=name,
             callback_data=f"month_{month_number}"
         )
-    return kb.adjust(2).as_markup()
+    return kb.adjust(4).as_markup()
 
 
 
@@ -51,13 +51,14 @@ async def kb_mn():
 
 
 
+####################################################################################################################################
 
-@user_router.callback_query(F.data == str(month["ноябрь"]))
-async def kb_optional(callback: CallbackQuery, state: FSMContext):
-    await state.set_state(Reg.day)
-    await callback.message.answer('введите день')
-
-    await callback.answer()
+# @user_router.callback_query(F.data == str(month["ноябрь"]))
+# async def kb_optional(callback: CallbackQuery, state: FSMContext):
+#     await state.set_state(Reg.day)
+#     await callback.message.answer('введите день')
+#
+#     await callback.answer()
 
 
 
@@ -82,26 +83,40 @@ async def handle_day(message: Message, state: FSMContext):
 
 
 
-####################################################################################################################################
 @user_router.callback_query(F.data.startswith("month_"))
 async def handle_month(callback: CallbackQuery, state: FSMContext):
-        value = callback.data.split("_")[1]
-        month_name = [k for k, v in month.items() if str(v) == value][0]
+        value = int(callback.data.split("_")[1])
+        # value = callback.data.split("_")[1]
+        # month_name = [k for k, v in month.items() if str(v) == value][0]
 
-        await state.update_data(month=value, month_name=month_name)
+        name, days = month[value]
+
+        await state.update_data(
+            month=value,
+            month_name=name,
+            days=days
+        )
+        await state.set_state(Reg.day)
+        await callback.message.answer("Введите день")
+        await callback.answer()
 
 
+        # month_name = next(k for k, v in month.items() if str(v) == value)
+        # await state.update_data(month=value, month_name=month_name)
 
-        data = await state.get_data()
-        selected_month = data.get("month")
-
-        text = "\n".join(f"{k}: {v}" for k,v in month.items())
+        # data = await state.get_data()
+        # selected_month = data.get("month")
+        #
+        # text = "\n".join(f"{k}: {v}" for k,v in month.items())
 
         # if value == str(month["ноябрь"]):
-        await kb_optional(callback, state)
 
 
-
+@user_router.callback_query(F.data.startswith("data_"))
+async def handle_data_us(callback: CallbackQuery, state: FSMContext):
+    action = callback.data.replace("data_", "")
+    if action == "внести расходы":
+        await kb_mn()
 
 
 
@@ -121,12 +136,6 @@ async def cb_menu(callback: CallbackQuery):
         'выберите действие',
         reply_markup=await kb_data_us()
     )
-
-
-
-
-
-
 
 
 
