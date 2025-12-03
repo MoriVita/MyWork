@@ -30,6 +30,7 @@ async def kb_month():
     return kb.adjust(4).as_markup()
 
 
+
 async def kb_data_us():
     kb_us = InlineKeyboardBuilder()
     for data_u in data_us:
@@ -40,6 +41,7 @@ async def kb_data_us():
     return kb_us.adjust(2).as_markup()
 
 
+
 async def kb_mn():
     kb_mns = InlineKeyboardBuilder()
     kb_mns.button(
@@ -47,6 +49,8 @@ async def kb_mn():
         callback_data = "menu"
     )
     return kb_mns.as_markup()
+
+
 
 async def add_expenses(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
@@ -58,19 +62,55 @@ async def add_expenses(callback: CallbackQuery, state: FSMContext):
             "expenses": []
         }
     await state.set_state(Reg.category)
+
     await callback.message.answer(
         "выберите категорию либо введите новую",
+        reply_markup=await kb_categories(user_id)
      )
-    print(users_data)
+    # await state.update_data(categories = callback.message.text)
+    # print(users_data)
+
+
+
+@user_router.message(Reg.category)
+async def new_category(message: Message, state: FSMContext):
+    user_id = message.from_user.id
+    category = message.text
+
+    users_data[user_id]["categories"][category] = {"types": []}
+
+    await message.answer(
+        f"Категория '{category}' добавлена.",
+        reply_markup=await kb_categories(user_id)
+    )
+    await state.clear()
+
+
+async def kb_categories(user_id):
+    kb = InlineKeyboardBuilder()
+    categories = users_data[user_id]["categories"]
+
+    for cat in categories.keys():
+        kb.button(
+            text=cat,
+            callback_data=f"cat_{cat}"
+        )
+    kb.button(
+        text="Добавить новую категорию:",
+        callback_data = "new_category"
+    )
+    return kb.adjust(2).as_markup()
 
 ####################################################################################################################################
 
-# @user_router.callback_query(F.data == str(month["ноябрь"]))
-# async def kb_optional(callback: CallbackQuery, state: FSMContext):
-#     await state.set_state(Reg.day)
-#     await callback.message.answer('введите день')
-#
-#     await callback.answer()
+
+
+@user_router.callback_query(F.data=="new_category")
+async def new_cat(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(Reg.category)
+    await callback.message.answer("Введите новую категорию")
+    await callback.answer()
+
 
 
 ####доделать сравнение
@@ -90,6 +130,7 @@ async def handle_day(message: Message, state: FSMContext):
         reply_markup = await kb_mn()
     )
     await state.clear()  # можно очистить состояние
+
 
 
 @user_router.callback_query(F.data.startswith("data_"))
