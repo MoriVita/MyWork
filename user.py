@@ -30,41 +30,6 @@ async def kb_month():
     return kb.adjust(4).as_markup()
 
 
-
-
-async def add_expenses(message: Message, state: FSMContext):
-    user_id = message.from_user.id
-
-    if user_id not in users_data:
-        users_data[user_id] = {
-            "categories": {},
-            "expenses": []
-        }
-
-    await state.set_state(Reg.category)
-    await message.answer(
-        "Выберите категорию или введите новую",
-        reply_markup=await kb_categories(user_id)
-    )
-
-
-
-async def kb_categories(user_id):
-    kb = InlineKeyboardBuilder()
-    categories = users_data[user_id]["categories"]
-
-    for cat in categories.keys():
-        kb.button(
-            text=cat, callback_data=f"cat_{cat}"
-        )
-    kb.button(
-        text="Добавить", callback_data="cat_new"
-    )
-    return kb.adjust(2).as_markup()
-
-
-
-
 async def kb_data_us():
     kb_us = InlineKeyboardBuilder()
     for data_u in data_us:
@@ -83,7 +48,20 @@ async def kb_mn():
     )
     return kb_mns.as_markup()
 
+async def add_expenses(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
 
+
+    if user_id not in users_data:
+        users_data[user_id] = {
+            "categories": {},
+            "expenses": []
+        }
+    await state.set_state(Reg.category)
+    await callback.message.answer(
+        "выберите категорию либо введите новую",
+     )
+    print(users_data)
 
 ####################################################################################################################################
 
@@ -93,7 +71,6 @@ async def kb_mn():
 #     await callback.message.answer('введите день')
 #
 #     await callback.answer()
-
 
 
 ####доделать сравнение
@@ -114,6 +91,12 @@ async def handle_day(message: Message, state: FSMContext):
     )
     await state.clear()  # можно очистить состояние
 
+
+@user_router.callback_query(F.data.startswith("data_"))
+async def handle_data(callback: CallbackQuery, state: FSMContext):
+    action = callback.data.replace("data_", "")
+    if action == data_us[0]:
+        await add_expenses(callback, state)
 
 
 
@@ -146,14 +129,6 @@ async def handle_month(callback: CallbackQuery, state: FSMContext):
         # if value == str(month["ноябрь"]):
 
 
-@user_router.callback_query(F.data.startswith("data_"))
-async def handle_data_us( callback: CallbackQuery, state: FSMContext):
-    action = callback.data.replace("data_", "")
-
-
-    if action == "внести расходы":
-        await add_expenses(callback.message, state)
-
 
 
 @user_router.callback_query(F.data == 'next')
@@ -176,7 +151,6 @@ async def cb_menu(callback: CallbackQuery):
 
 
 ##################################################################
-
 @user_router.message(Command('start'))
 async def cmd_start(message: Message):
     await message.answer('text', reply_markup= await kb_next())
