@@ -93,6 +93,34 @@ async def new_category(message: Message, state: FSMContext):
 
 
 
+@user_router.message(Reg.type)
+async def reg_type(message: Message, state: FSMContext):
+    user_id = message.from_user.id
+    expense_type = message.text
+    data = await state.get_data()
+    category = data.get("category")
+
+    if user_id not in users_data:
+        users_data[user_id] = {
+            "categories": {},
+            "expenses": []
+        }
+
+    if category and category in users_data[user_id]["categories"]:
+        # Добавляем тип в список типов категории, если его еще нет
+        if expense_type not in users_data[user_id]["categories"][category]["types"]:
+            users_data[user_id]["categories"][category]["types"].append(expense_type)
+        
+        await state.update_data(type=expense_type)
+        await message.answer(
+            f"Тип расхода '{expense_type}' добавлен. Введите сумму:"
+        )
+        await state.set_state(Reg.amount)
+    else:
+        await message.answer("Ошибка: категория не найдена. Начните заново.")
+        await state.clear()
+
+
 async def kb_categories(user_id):
     kb = InlineKeyboardBuilder()
     
@@ -119,7 +147,7 @@ async def kb_categories(user_id):
 async def kb_types(user_id, category):
     kb_types = InlineKeyboardBuilder()
     
-    # Проверяем существование пользователя и категории
+  
     if user_id not in users_data:
         users_data[user_id] = {
             "categories": {},
@@ -158,6 +186,15 @@ async def new_cat(callback: CallbackQuery, state: FSMContext):
 # @user_router.message(Reg.type)
 # async def reg_type(message: Message, state: FSMContext):
 #     await state.update_data(type=message.text)
+
+
+
+@user_router.callback_query(F.data=="new_type")
+async def new_type(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(Reg.type)
+    await callback.message.answer("ВВедите новый тип расхода")
+    await callback.answer()
+
 
 
 
