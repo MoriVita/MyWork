@@ -77,6 +77,12 @@ async def new_category(message: Message, state: FSMContext):
     user_id = message.from_user.id
     category = message.text
 
+    if user_id not in users_data:
+        users_data[user_id] = {
+            "categories": {},
+            "expenses": []
+        }
+
     users_data[user_id]["categories"][category] = {"types": []}
 
     await message.answer(
@@ -89,6 +95,13 @@ async def new_category(message: Message, state: FSMContext):
 
 async def kb_categories(user_id):
     kb = InlineKeyboardBuilder()
+    
+    if user_id not in users_data:
+        users_data[user_id] = {
+            "categories": {},
+            "expenses": []
+        }
+    
     categories = users_data[user_id]["categories"]
 
     for cat in categories.keys():
@@ -103,8 +116,31 @@ async def kb_categories(user_id):
     return kb.adjust(2).as_markup()
 
 
-# async def kb_types():
-#     kb_types = InlineKeyboardBuilder()
+async def kb_types(user_id, category):
+    kb_types = InlineKeyboardBuilder()
+    
+    # Проверяем существование пользователя и категории
+    if user_id not in users_data:
+        users_data[user_id] = {
+            "categories": {},
+            "expenses": []
+        }
+    
+    if category not in users_data[user_id]["categories"]:
+        users_data[user_id]["categories"][category] = {"types": []}
+    
+    types = users_data[user_id]["categories"][category]["types"]
+    
+    for expense_type in types:
+        kb_types.button(
+            text=expense_type,
+            callback_data=f"type_{expense_type}"
+        )
+    kb_types.button(
+        text="Добавить новый тип:",
+        callback_data = "new_type"
+    )
+    return kb_types.adjust(2).as_markup()
 
 
 ####################################################################################################################################
@@ -150,7 +186,8 @@ async def handle_cat(callback: CallbackQuery, state: FSMContext):
     category = callback.data.replace("cat_", "")
     await state.update_data(category=category)
     await callback.message.answer(
-        f"Категория: {category}"
+        f"Выбрана категория: {category}, выберите соответствующий тип расхода либо введите новый:",
+        reply_markup=await kb_types(callback.from_user.id, category)
     )
     await state.set_state(Reg.type)
     await callback.answer()
