@@ -9,7 +9,7 @@ from state import Reg
 
 user_router = Router()
 
-
+#test
 
 async def kb_next():
     nb = InlineKeyboardBuilder()
@@ -129,7 +129,7 @@ async def handle_day(message: Message, state: FSMContext):
         f"Текущий месяц: {month_name},\n день: {message.text}",
         reply_markup = await kb_mn()
     )
-    await state.clear()  # можно очистить состояние
+    await state.clear()
 
 
 
