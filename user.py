@@ -9,7 +9,7 @@ from state import Reg
 
 user_router = Router()
 
-#test
+
 
 async def kb_next():
     nb = InlineKeyboardBuilder()
@@ -50,11 +50,17 @@ async def kb_mn():
     )
     return kb_mns.as_markup()
 
-
+async def kb_back():
+    kb = InlineKeyboardBuilder()
+    kb.button(
+        text = "вернуться в меню",
+        callback_data = "menu"
+    )
+    return kb.as_markup()
 
 async def add_expenses(callback: CallbackQuery, state: FSMContext):
-    user_id = callback.from_user.id
 
+    user_id = callback.from_user.id
 
     if user_id not in users_data:
         users_data[user_id] = {
@@ -71,6 +77,58 @@ async def add_expenses(callback: CallbackQuery, state: FSMContext):
     # print(users_data)
 
 
+
+async def kb_categories(user_id):
+    kb = InlineKeyboardBuilder()
+
+    if user_id not in users_data:
+        users_data[user_id] = {
+            "categories": {},
+            "expenses": []
+        }
+
+    categories = users_data[user_id]["categories"]
+
+    for cat in categories.keys():
+        kb.button(
+            text=cat,
+            callback_data=f"cat_{cat}"
+        )
+    kb.button(
+        text="Добавить новую категорию:",
+        callback_data="new_category"
+    )
+    return kb.adjust(2).as_markup()
+
+
+
+async def kb_types(user_id, category):
+    kb_ty = InlineKeyboardBuilder()
+
+    if user_id not in users_data:
+        users_data[user_id] = {
+            "categories": {},
+            "expenses": []
+        }
+
+    if category not in users_data[user_id]["categories"]:
+        users_data[user_id]["categories"][category] = {"types": []}
+
+    types = users_data[user_id]["categories"][category]["types"]
+
+    for expense_type in types:
+        kb_ty.button(
+            text=expense_type,
+            callback_data=f"type_{expense_type}"
+        )
+    kb_ty.button(
+        text="Добавить новый тип:",
+        callback_data="new_type"
+    )
+    return kb_ty.adjust(2).as_markup()
+
+
+####################################################################################################################################
 
 @user_router.message(Reg.category)
 async def new_category(message: Message, state: FSMContext):
@@ -107,7 +165,6 @@ async def reg_type(message: Message, state: FSMContext):
         }
 
     if category and category in users_data[user_id]["categories"]:
-        # Добавляем тип в список типов категории, если его еще нет
         if expense_type not in users_data[user_id]["categories"][category]["types"]:
             users_data[user_id]["categories"][category]["types"].append(expense_type)
         
@@ -121,6 +178,7 @@ async def reg_type(message: Message, state: FSMContext):
         await state.clear()
 
 
+
 @user_router.message(Reg.amount)
 async def reg_amount(message: Message, state: FSMContext):
     user_id = message.from_user.id
@@ -130,90 +188,18 @@ async def reg_amount(message: Message, state: FSMContext):
             "expenses": []
         }
 
-    amoun_text = message.text
+    amount_text = message.text
     data = await state.get_data()
     category = data.get("category")
-    type = data.get("type")
+    type_am = data.get("type")
      
     # summ = data.get("amount")
     # users_data[user_id]["categories"]["expenses"].append(amoun_text)
-    await message.answer(f"категория: {category}\nтип расхода:{type}\nсумма: {amoun_text}")
+    await message.answer(
+        f"категория: {category}\nтип расхода:{type_am}\nсумма: {amount_text}",
+        reply_markup = await kb_back()
 
-
-
-async def kb_categories(user_id):
-    kb = InlineKeyboardBuilder()
-    
-    if user_id not in users_data:
-        users_data[user_id] = {
-            "categories": {},
-            "expenses": []
-        }
-    
-    categories = users_data[user_id]["categories"]
-
-    for cat in categories.keys():
-        kb.button(
-            text=cat,
-            callback_data=f"cat_{cat}"
-        )
-    kb.button(
-        text="Добавить новую категорию:",
-        callback_data = "new_category"
     )
-    return kb.adjust(2).as_markup()
-
-
-async def kb_types(user_id, category):
-    kb_types = InlineKeyboardBuilder()
-    
-  
-    if user_id not in users_data:
-        users_data[user_id] = {
-            "categories": {},
-            "expenses": []
-        }
-    
-    if category not in users_data[user_id]["categories"]:
-        users_data[user_id]["categories"][category] = {"types": []}
-    
-    types = users_data[user_id]["categories"][category]["types"]
-    
-    for expense_type in types:
-        kb_types.button(
-            text=expense_type,
-            callback_data=f"type_{expense_type}"
-        )
-    kb_types.button(
-        text="Добавить новый тип:",
-        callback_data = "new_type"
-    )
-    return kb_types.adjust(2).as_markup()
-
-
-####################################################################################################################################
-
-
-
-@user_router.callback_query(F.data=="new_category")
-async def new_cat(callback: CallbackQuery, state: FSMContext):
-    await state.set_state(Reg.category)
-    # await state.set_state(Reg.type)
-    await callback.message.answer("Введите новую категорию")
-    
-    await callback.answer()
-
-# @user_router.message(Reg.type)
-# async def reg_type(message: Message, state: FSMContext):
-#     await state.update_data(type=message.text)
-
-
-
-@user_router.callback_query(F.data=="new_type")
-async def new_type(callback: CallbackQuery, state: FSMContext):
-    await state.set_state(Reg.type)
-    await callback.message.answer("ВВедите новый тип расхода")
-    await callback.answer()
 
 
 
@@ -238,6 +224,34 @@ async def handle_day(message: Message, state: FSMContext):
 
 
 
+
+
+####################################################################################################################################
+
+
+
+@user_router.callback_query(F.data=="new_category")
+async def new_cat(callback: CallbackQuery, state: FSMContext):
+
+    await state.set_state(Reg.category)
+    await callback.message.answer("Введите новую категорию")
+    await callback.answer()
+
+# @user_router.message(Reg.type)
+# async def reg_type(message: Message, state: FSMContext):
+#     await state.update_data(type=message.text)
+
+
+
+@user_router.callback_query(F.data=="new_type")
+async def new_type(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(Reg.type)
+    await callback.message.answer("ВВедите новый тип расхода")
+    await callback.answer()
+
+
+
+
 @user_router.callback_query(F.data.startswith("cat_"))
 async def handle_cat(callback: CallbackQuery, state: FSMContext):
     category = callback.data.replace("cat_", "")
@@ -256,6 +270,34 @@ async def handle_data(callback: CallbackQuery, state: FSMContext):
     action = callback.data.replace("data_", "")
     if action == data_us[0]:
         await add_expenses(callback, state)
+
+
+        # data = await state.get_data()
+        # selected_month = data.get("month")
+        #
+        # text = "\n".join(f"{k}: {v}" for k,v in month.items())
+
+        # if value == str(month["ноябрь"]):
+
+
+
+
+@user_router.callback_query(F.data == 'next')
+async def cb_next(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(Reg.month)  # устанавливаем состояние
+    await callback.message.answer(
+        'выберите текущий месяц из списка',
+        reply_markup=await kb_month()
+    )
+
+
+
+@user_router.callback_query(F.data == 'menu')
+async def cb_menu(callback: CallbackQuery):
+    await callback.message.edit_text(
+        'выберите действие',
+        reply_markup=await kb_data_us()
+    )
 
 
 
