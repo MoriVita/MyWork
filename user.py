@@ -58,6 +58,8 @@ async def kb_back():
     )
     return kb.as_markup()
 
+
+
 async def add_expenses(callback: CallbackQuery, state: FSMContext):
 
     user_id = callback.from_user.id
@@ -128,6 +130,18 @@ async def kb_types(user_id, category):
     return kb_ty.adjust(2).as_markup()
 
 
+async def report_info(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+
+    if user_id not in users_data:
+        users_data[user_id] = {
+            "categories": {},
+            "expenses": []
+        }
+    # for text in users_data[user_id]["categories"].keys():
+    # text = "\n".join(f"{k}: {v}" for k, v in users_data[user_id]["categories"].items())
+    text = "\n".join(f"{k}" for k in users_data[user_id]["categories"].keys())
+    await callback.message.answer(text)
 ####################################################################################################################################
 
 @user_router.message(Reg.category)
@@ -204,6 +218,7 @@ async def reg_amount(message: Message, state: FSMContext):
 
 
 
+
 ####доделать сравнение
 @user_router.message(Reg.day)
 async def handle_day(message: Message, state: FSMContext):
@@ -270,6 +285,8 @@ async def handle_data(callback: CallbackQuery, state: FSMContext):
     action = callback.data.replace("data_", "")
     if action == data_us[0]:
         await add_expenses(callback, state)
+    if action == data_us[1]:
+        await report_info(callback, state)
 
 
         # data = await state.get_data()
