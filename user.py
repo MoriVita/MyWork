@@ -121,6 +121,26 @@ async def reg_type(message: Message, state: FSMContext):
         await state.clear()
 
 
+@user_router.message(Reg.amount)
+async def reg_amount(message: Message, state: FSMContext):
+    user_id = message.from_user.id
+    if user_id not in users_data:
+        users_data[user_id] = {
+            "categories": {},
+            "expenses": []
+        }
+
+    amoun_text = message.text
+    data = await state.get_data()
+    category = data.get("category")
+    type = data.get("type")
+     
+    # summ = data.get("amount")
+    # users_data[user_id]["categories"]["expenses"].append(amoun_text)
+    await message.answer(f"категория: {category}\nтип расхода:{type}\nсумма: {amoun_text}")
+
+
+
 async def kb_categories(user_id):
     kb = InlineKeyboardBuilder()
     
